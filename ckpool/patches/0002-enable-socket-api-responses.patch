@@ -1,0 +1,26 @@
+diff --git a/src/ckpool.h b/src/ckpool.h
+index 0921496..58fbc95 100644
+--- a/src/ckpool.h
++++ b/src/ckpool.h
+@@ -394,7 +394,20 @@ struct apimsg {
+ static inline void ckpool_api(ckpool_t __maybe_unused *ckp, apimsg_t __maybe_unused *apimsg) {};
+ static inline json_t *json_encode_errormsg(json_error_t __maybe_unused *err_val) { return NULL; };
+ static inline json_t *json_errormsg(const char __maybe_unused *fmt, ...) { return NULL; };
+-static inline void send_api_response(json_t __maybe_unused *val, const int __maybe_unused sockd) {};
++
++/* Send a JSON value as a length-prefixed unix message so that external
++ * tools (kamado-api) can query live pool/user/worker stats via the
++ * stratifier socket.  The caller (stratum_loop retry:) closes sockd. */
++static inline void send_api_response(json_t *val, const int sockd)
++{
++	char *response;
++
++	response = json_dumps(val, JSON_NO_UTF8 | JSON_PRESERVE_ORDER);
++	json_decref(val);
++	if (response)
++		send_unix_msg(sockd, response);
++	free(response);
++}
+ 
+ /* Subclients have client_ids in the high bits. Returns the value of the parent
+  * client if one exists. */

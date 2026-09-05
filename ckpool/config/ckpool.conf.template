@@ -1,0 +1,24 @@
+{
+    "btcd": [
+        {
+            "url": "${BITCOIN_RPC_HOST}:${BITCOIN_RPC_PORT}",
+            "auth": "${BITCOIN_RPC_USER}",
+            "pass": "${BITCOIN_RPC_PASSWORD}",
+            "notify": ${BITCOIN_NOTIFY}
+        }
+    ],
+    "btcaddress": "${POOL_BTCADDRESS}",
+    "btcsig": "${POOL_BTCSIG}",
+    "blockpoll": ${BLOCKPOLL_MS},
+    "update_interval": ${UPDATE_INTERVAL_S},
+    "serverurl": [
+        "0.0.0.0:${STRATUM_PORT}",
+        "127.0.0.1:${TLS_INTERNAL_PORT}"
+    ],
+    "mindiff": ${MINDIFF},
+    "startdiff": ${STARTDIFF},
+    "maxdiff": ${MAXDIFF},
+    "dropidle": ${DROPIDLE},
+    "zmqblock": "${ZMQ_BLOCK}",
+    "logdir": "${LOGDIR}"
+}

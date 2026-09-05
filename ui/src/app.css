@@ -1,0 +1,196 @@
+:root {
+  color-scheme: dark light;
+  --bg: #0b0e14;
+  --bg-alt: #11151d;
+  --bg-card: #151a24;
+  --bg-hover: #1c2230;
+  --border: #232a3a;
+  --fg: #e6e9ef;
+  --fg-dim: #8a92a6;
+  --accent: #ff7a3a;
+  --accent-dim: #b8501f;
+  --good: #5ce0a8;
+  --bad: #ff6b6b;
+  --warn: #f5c447;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--fg);
+  min-height: 100vh;
+}
+
+/* Kamado-inspired backdrop: a warm ember glow at the top (the Hinokami
+ * Kagura / hearth flame) layered over a very low-opacity checker
+ * pattern nodding to Tanjiro's haori. Fixed to the viewport so it
+ * doesn't scroll away from the content. */
+body {
+  font-variant-numeric: tabular-nums;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 1400px 820px at 50% -120px, rgba(255, 100, 40, 0.22), transparent 62%),
+    radial-gradient(circle 420px at 8% 14%, rgba(180, 40, 20, 0.10), transparent 70%),
+    radial-gradient(circle 520px at 92% 22%, rgba(30, 90, 60, 0.07), transparent 70%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect x='0' y='0' width='48' height='48' fill='%23284030' fill-opacity='0.08'/><rect x='48' y='48' width='48' height='48' fill='%23284030' fill-opacity='0.08'/></svg>");
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
+  background-size: 100% auto, auto, auto, 96px 96px;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 0.5em 1em;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button:hover {
+  background: var(--bg-hover);
+}
+
+code,
+.mono {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
+    Menlo, monospace;
+  font-size: 0.92em;
+}
+
+.card {
+  background: rgba(21, 26, 36, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+}
+
+/* ── Mobile breakpoints ── */
+@media (max-width: 480px) {
+  :root {
+    font-size: 13px;
+  }
+  .card {
+    padding: 1rem 1rem;
+  }
+  .grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .stat-value {
+    font-size: 1.4rem;
+  }
+  th, td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.9em;
+  }
+}
+@media (max-width: 360px) {
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-label {
+  color: var(--fg-dim);
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4em;
+}
+.stat-value {
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.stat-sub {
+  color: var(--fg-dim);
+  font-size: 0.95em;
+  margin-top: 0.4em;
+  line-height: 1.4;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  font-weight: 500;
+  color: var(--fg-dim);
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+tbody tr:hover {
+  background: var(--bg-hover);
+}
+td.num,
+th.num {
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  font-size: 0.75em;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+.badge.good {
+  color: var(--good);
+  border-color: #2f5c48;
+  background: #0f2419;
+}
+.badge.bad {
+  color: var(--bad);
+  border-color: #5c2f2f;
+  background: #241010;
+}
+.badge.warn {
+  color: var(--warn);
+  border-color: #5c502f;
+  background: #241f10;
+}

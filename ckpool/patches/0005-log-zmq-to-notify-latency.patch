@@ -1,0 +1,38 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index a039aad3..d6355d6f 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -429,6 +429,9 @@ struct stratifier_data {
+ 	/* Time we last sent out a stratum update */
+ 	time_t update_time;
+ 
++	/* Timestamp of last ZMQ block trigger for latency measurement */
++	tv_t zmq_trigger_time;
++
+ 	int64_t workbase_id;
+ 	int64_t blockchange_id;
+ 	int session_id;
+@@ -1519,6 +1522,15 @@ retry:
+ 		stratum_broadcast_update(sdata, wb, new_block);
+ 	ret = true;
+ 	LOGINFO("Broadcast updated stratum base");
++	if (new_block && sdata->zmq_trigger_time.tv_sec) {
++		tv_t now;
++		tv_time(&now);
++		LOGWARNING("Block update latency: %dms (ZMQ trigger to mining.notify broadcast)",
++			   ms_tvdiff(&now, &sdata->zmq_trigger_time));
++	}
++	/* Always clear ZMQ trigger so a stale timestamp from a reconnection
++	 * or duplicate detection does not contaminate the next measurement. */
++	sdata->zmq_trigger_time.tv_sec = 0;
+ 	/* Update transactions after stratum broadcast to not delay
+ 	 * propagation. */
+ 	if (likely(txns))
+@@ -8544,6 +8556,7 @@ static void *zmqnotify(void *arg)
+ 					LOGDEBUG("ZMQ sequence number");
+ 					break;
+ 				case 32:
++					tv_time(&sdata->zmq_trigger_time);
+ 					update_base(sdata, GEN_PRIORITY);
+ 					__bin2hex(hexhash, zmq_msg_data(&message), 32);
+ 					LOGNOTICE("ZMQ block hash %s", hexhash);

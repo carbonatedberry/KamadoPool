@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+dist/
+
+!api/internal/webui/dist/
+*.o
+*.a
+*.so
+*.tar
+*.tar.gz
+
+# Docker
+docker-images/
+
+# CKPool source (cloned at build time)
+ckpool/src/
+
+# Go
+api/bin/
+api/vendor/
+*.exe
+
+# Node / Svelte
+ui/node_modules/
+ui/.svelte-kit/
+ui/build/
+
+# Runtime / data
+data/
+logs/
+*.log
+*.pid
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+giteaNew
+giteaNew.pub

@@ -1,0 +1,90 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index 7940d4fa..a856b3eb 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -5865,6 +5865,65 @@ out_nouserwb:
+ 	return wb->coinb2bin;
+ }
+
++/* Kamado (patches/0008): highest share diff for which PoW reproduction
++ * data has been logged in this process run. Deliberately unlocked, a
++ * race between share-processing threads can at worst emit a duplicate
++ * or out-of-order log line, which kamado-api deduplicates by diff. */
++static double best_pow_diff;
++
++/* Kamado (patches/0008): log everything needed to independently
++ * reproduce and verify the proof of work of a best share, the
++ * serialized 80-byte block header exactly as it was hashed, plus the
++ * assembled coinbase transaction and merkle branch hashes that
++ * reproduce the merkle root committed in that header. kamado-api
++ * parses this line from the log to power the dashboard PoW inspector.
++ * Needs to be entered with workbase readcount held. */
++static void log_best_pow_data(const stratum_instance_t *client, const workbase_t *wb,
++			      const char *nonce2, const char *coinbase, const int cblen,
++			      const uchar *swap, const uchar *hash, const double sdiff)
++{
++	char header_hex[164], hexhash[68];
++	json_t *val, *branches;
++	uchar sharehash[32];
++	char *cb_hex, *s;
++	int i;
++
++	__bin2hex(header_hex, swap, 80);
++	bswap_256(sharehash, hash);
++	__bin2hex(hexhash, sharehash, 32);
++	cb_hex = bin2hex(coinbase, cblen);
++	if (unlikely(!cb_hex))
++		return;
++	branches = json_array();
++	for (i = 0; i < wb->merkles; i++)
++		json_array_append_new(branches, json_string(&wb->merklehash[i][0]));
++	val = json_object();
++	json_set_double(val, "sdiff", sdiff);
++	json_set_double(val, "netdiff", wb->network_diff);
++	json_set_int(val, "height", wb->height);
++	json_set_string(val, "hash", hexhash);
++	json_set_string(val, "header", header_hex);
++	json_set_string(val, "coinbase", cb_hex);
++	json_set_int(val, "cb1len", wb->coinb1len);
++	json_object_set_new(val, "merklebranches", branches);
++	json_set_string(val, "enonce1", client->enonce1);
++	json_set_string(val, "nonce2", nonce2);
++	json_set_string(val, "workername", client->workername ? client->workername : "");
++	s = json_dumps(val, JSON_COMPACT);
++	json_decref(val);
++	free(cb_hex);
++	if (likely(s)) {
++		/* Call logmsg directly rather than LOGNOTICE: the LOGMSG
++		 * macro splits messages into DEFLOGBUFSIZ (512-byte) chunks,
++		 * each written as a separate timestamped log line, and its
++		 * length arithmetic drops everything past ~3 chunks. This
++		 * record is ~2.5KB of JSON that kamado-api must read back as
++		 * one intact line. logmsg itself is unbounded. */
++		logmsg(LOG_NOTICE, "Best share PoW data %s", s);
++		free(s);
++	}
++}
++
+ /* Needs to be entered with workbase readcount and client holding a ref count. */
+ static double submission_diff(sdata_t *sdata, const stratum_instance_t *client, const workbase_t *wb,
+ 			      const char *nonce2, const uint32_t ntime32, uint32_t version_mask,
+@@ -5937,6 +5996,19 @@ static double submission_diff(sdata_t *sdata, const stratum_instance_t *client,
+ 	/* Calculate the diff of the share here */
+ 	ret = diff_from_target(hash);
+
++	/* Kamado (patches/0008): if this is the highest-diff share this
++	 * process has seen, log full PoW reproduction data for the
++	 * dashboard's best-share header inspector. Skip shares that will
++	 * be rejected: stale ones, and those outside the ntime roll
++	 * window (mirrors the check in parse_submit). Duplicates cannot
++	 * trigger this, an identical share has an equal, not greater,
++	 * diff. */
++	if (unlikely(ret > best_pow_diff && !stale &&
++		     ntime32 >= wb->ntime32 && ntime32 <= wb->ntime32 + 7000)) {
++		best_pow_diff = ret;
++		log_best_pow_data(client, wb, nonce2, coinbase, cblen, swap, hash, ret);
++	}
++
+ 	/* Test we haven't solved a block regardless of share status */
+ 	test_blocksolve(client, wb, swap, hash, ret, coinbase, cblen, nonce2, nonce, ntime32, version_mask, stale);
+

@@ -1,0 +1,18 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index c94ca645..a1b2c3e4 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -4129,11 +4129,12 @@ static json_t *workerinfo(const user_instance_t *user, const worker_instance_t *
+ {
+ 	json_t *val;
+
+-	JSON_CPACK(val, "{ss,ss,si,sf,sf,sf,sf,si,sf,sf,si,sb}",
++	JSON_CPACK(val, "{ss,ss,si,sf,sf,sf,sf,si,sf,sf,sI,si,sb}",
+ 		   "user", user->username, "worker", worker->workername, "id", user->id,
+ 	    "dsps1", worker->dsps1, "dsps5", worker->dsps5, "dsps60", worker->dsps60,
+ 	    "dsps1440", worker->dsps1440, "lastshare", worker->last_share.tv_sec,
+ 	    "bestdiff", worker->best_diff, "bestever", (double)worker->best_ever,
++	    "shares", (int64_t)worker->shares,
+ 	    "mindiff", worker->mindiff, "idle", worker->idle);
+ 	return val;
+ }

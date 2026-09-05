@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kamado Pool — UI not built</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0b0e14;
+        color: #e6e9ef;
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+      .card {
+        background: #151a24;
+        border: 1px solid #232a3a;
+        border-radius: 10px;
+        padding: 2rem 2.5rem;
+        max-width: 32rem;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+      }
+      code {
+        background: #11151d;
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        font-family: ui-monospace, Menlo, monospace;
+      }
+      a {
+        color: #ff7a3a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>🔥 Kamado Pool — UI not built</h1>
+      <p>
+        This is the placeholder shipped inside <code>kamado-api</code> when
+        the Svelte dashboard hasn't been built yet. Run
+        <code>make ui &amp;&amp; make api</code> (or build the Docker image,
+        which does it automatically) to embed the real dashboard.
+      </p>
+      <p>
+        The JSON API is still fully available at
+        <a href="/api/snapshot">/api/snapshot</a>,
+        <a href="/api/health">/api/health</a>, etc.
+      </p>
+    </div>
+  </body>
+</html>

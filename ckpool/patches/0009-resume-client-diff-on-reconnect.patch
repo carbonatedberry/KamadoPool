@@ -1,0 +1,117 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index a856b3eb..fcb9eb94 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -5477,6 +5477,69 @@ static void update_solo_client(sdata_t *sdata, workbase_t *wb, const int64_t cli
+ 	stratum_add_send(sdata, json_msg, client_id, SM_UPDATE);
+ }
+
++/* Kamado (patches/0009): restore a reconnecting miner's difficulty and
++ * grant the work it already holds a difficulty grace window.
++ *
++ * Upstream gives every new connection ckp->startdiff, so a pool restart
++ * discards the difficulty vardiff had tuned each miner to and makes it
++ * re-converge from the pool default. ckpool does persist per-worker
++ * hashrate across restarts (read_userstats, decayed by the downtime), so
++ * the starting difficulty can be derived from it with the same formula
++ * and clamps add_submit's vardiff uses.
++ *
++ * The grace window covers work in flight. A miner may hold queued jobs,
++ * and much firmware only applies a new difficulty on the following job,
++ * so its first shares can be below the difficulty we just assigned.
++ * Pointing diff_change_job_id past the current workbase makes the
++ * existing check in parse_submit validate those against old_diff (the
++ * pool minimum) instead of rejecting them as "high diff". The next
++ * mining.notify closes the window, since by then the client has had the
++ * difficulty for a whole job.
++ *
++ * Needs to be entered with no workbase or instance lock held. */
++static void resume_client_diff(ckpool_t *ckp, sdata_t *sdata, stratum_instance_t *client)
++{
++	const worker_instance_t *worker = client->worker_instance;
++	int64_t optimal, mindiff, network_diff = 0;
++	double dsps = 0;
++
++	ck_rlock(&sdata->workbase_lock);
++	if (sdata->current_workbase) {
++		network_diff = sdata->current_workbase->network_diff;
++		/* Every job sent so far, including the one about to go out,
++		 * predates this client acting on its difficulty. */
++		client->diff_change_job_id = sdata->workbase_id + 1;
++	}
++	ck_runlock(&sdata->workbase_lock);
++
++	/* Read unlocked, as the vardiff path in add_submit does: these are
++	 * decaying averages used as a heuristic, not accounting. */
++	if (worker)
++		dsps = worker->dsps5 > 0 ? worker->dsps5 : worker->dsps1;
++	if (dsps > 0) {
++		optimal = lround(dsps * 3.33);
++		/* Client suggest diff overrides worker mindiff */
++		if (client->suggest_diff)
++			mindiff = client->suggest_diff;
++		else
++			mindiff = worker->mindiff;
++		optimal = MAX(optimal, ckp->mindiff);
++		optimal = MAX(optimal, mindiff);
++		if (ckp->maxdiff)
++			optimal = MIN(optimal, ckp->maxdiff);
++		if (network_diff > 0)
++			optimal = MIN(optimal, network_diff);
++		if (optimal > 0 && optimal != client->diff) {
++			LOGNOTICE("Client %s resuming at diff %"PRId64" from retained hashrate instead of startdiff %"PRId64,
++				  client->identity, optimal, ckp->startdiff);
++			client->diff = optimal;
++		}
++	}
++	/* Floor for the grace window only. client->diff stays what we
++	 * advertise; vardiff overwrites old_diff on its first adjustment. */
++	client->old_diff = ckp->mindiff > 0 ? ckp->mindiff : 1;
++}
++
+ /* Needs to be entered with client holding a ref count. */
+ static json_t *parse_authorise(stratum_instance_t *client, const json_t *params_val,
+ 			       json_t **err_val)
+@@ -5558,6 +5621,19 @@ out:
+ 		sdata_t *sdata = ckp->sdata;
+ 		workbase_t *wb;
+
++		/* Kamado (patches/0009): pick up where vardiff left off and
++		 * arm the first-job grace window. Called before any lock is
++		 * taken here, it acquires the workbase lock itself. */
++		resume_client_diff(ckp, sdata, client);
++
++		/* Kamado (patches/0009): mining.set_difficulty must precede
++		 * the first mining.notify. Upstream sent the job first, so a
++		 * miner started hashing it at whatever difficulty its firmware
++		 * defaults to and its early shares came back under the
++		 * difficulty we had assigned, a burst of "high diff" rejects
++		 * from every miner on every pool restart. */
++		stratum_send_diff(sdata, client);
++
+ 		/* To avoid grabbing recursive lock */
+ 		ck_wlock(&sdata->workbase_lock);
+ 		wb = sdata->current_workbase;
+@@ -5573,8 +5649,6 @@ out:
+ 		ck_wlock(&sdata->workbase_lock);
+ 		wb->readcount--;
+ 		ck_wunlock(&sdata->workbase_lock);
+-
+-		stratum_send_diff(sdata, client);
+ 	}
+ 	return json_boolean(ret);
+ }
+@@ -6567,9 +6641,12 @@ static void update_client(const stratum_instance_t *client, const int64_t client
+ {
+ 	sdata_t *sdata = client->sdata;
+
++	/* Kamado (patches/0009): difficulty before work, so a client never
++	 * starts a job without knowing the difficulty it will be judged
++	 * against. Upstream sent the update first. */
++	stratum_send_diff(sdata, client);
+ 	if (!client->ckp->btcsolo)
+ 		stratum_send_update(sdata, client_id, true);
+-	stratum_send_diff(sdata, client);
+ }
+
+ static json_params_t

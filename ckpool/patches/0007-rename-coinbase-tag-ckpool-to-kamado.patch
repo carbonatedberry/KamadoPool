@@ -1,0 +1,13 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index 8281fa02..38b2ac02 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -574,7 +574,7 @@ static void generate_coinbase(ckpool_t *ckp, workbase_t *wb)
+ 	len += wb->enonce2varlen;
+ 
+ 	wb->coinb2bin = ckzalloc(512);
+-	memcpy(wb->coinb2bin, "\x0a\x63\x6b\x70\x6f\x6f\x6c", 7);
++	memcpy(wb->coinb2bin, "\x0a\x6b\x61\x6d\x61\x64\x6f", 7);
+ 	wb->coinb2len = 7;
+ 	if (ckp->btcsig) {
+ 		int siglen = strlen(ckp->btcsig);

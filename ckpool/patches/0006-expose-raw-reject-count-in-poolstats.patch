@@ -1,0 +1,69 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index d6355d6f..09b68097 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -71,6 +71,8 @@ struct pool_stats {
+ 	int64_t accounted_diff_shares;
+ 	int64_t unaccounted_rejects;
+ 	int64_t accounted_rejects;
++	int64_t unaccounted_reject_count;
++	int64_t accounted_reject_count;
+ 
+ 	/* Diff shares per second for 1/5/15... minute rolling averages */
+ 	double dsps1;
+@@ -4508,13 +4510,13 @@ static void get_poolstats(sdata_t *sdata, int *sockd)
+ 	json_t *val;
+ 
+ 	mutex_lock(&sdata->stats_lock);
+-	JSON_CPACK(val, "{si,si,si,si,si,sI,sf,sf,sf,sf,sI,sI,sf,sf,sf,sf,sf,sf,sf}",
++	JSON_CPACK(val, "{si,si,si,si,si,sI,sf,sf,sf,sf,sI,sI,sI,sf,sf,sf,sf,sf,sf,sf}",
+ 		   "start", stats->start_time.tv_sec, "update", stats->last_update.tv_sec,
+ 	    "workers", stats->workers + stats->remote_workers, "users", stats->users + stats->remote_users,
+ 	    "disconnected", stats->disconnected,
+ 	    "shares", stats->accounted_shares, "sps1", stats->sps1, "sps5", stats->sps5,
+ 	    "sps15", stats->sps15, "sps60", stats->sps60, "accepted", stats->accounted_diff_shares,
+-	    "rejected", stats->accounted_rejects, "dsps1", stats->dsps1, "dsps5", stats->dsps5,
++	    "rejected", stats->accounted_rejects, "rejectcount", stats->accounted_reject_count, "dsps1", stats->dsps1, "dsps5", stats->dsps5,
+ 	    "dsps15", stats->dsps15, "dsps60", stats->dsps60, "dsps360", stats->dsps360,
+ 	    "dsps1440", stats->dsps1440, "dsps10080", stats->dsps10080);
+ 	mutex_unlock(&sdata->stats_lock);
+@@ -5625,8 +5627,10 @@ static void add_submit(ckpool_t *ckp, stratum_instance_t *client, const double d
+ 	if (valid) {
+ 		ckp_sdata->stats.unaccounted_shares++;
+ 		ckp_sdata->stats.unaccounted_diff_shares += diff;
+-	} else
++	} else {
+ 		ckp_sdata->stats.unaccounted_rejects += diff;
++		ckp_sdata->stats.unaccounted_reject_count++;
++	}
+ 	mutex_unlock(&ckp_sdata->uastats_lock);
+ 
+ 	/* Count only accepted and stale rejects in diff calculation. */
+@@ -8325,7 +8329,7 @@ out_status:
+ 		for (i = 0; i < 32; i++) {
+ 			int64_t unaccounted_shares,
+ 				unaccounted_diff_shares,
+-				unaccounted_rejects;
++				unaccounted_rejects, unaccounted_reject_count;
+ 
+ 			ts_to_tv(&diff, &stats->last_update);
+ 			cksleep_ms_r(&stats->last_update, 1875);
+@@ -8339,15 +8343,18 @@ out_status:
+ 			unaccounted_shares = stats->unaccounted_shares;
+ 			unaccounted_diff_shares = stats->unaccounted_diff_shares;
+ 			unaccounted_rejects = stats->unaccounted_rejects;
++			unaccounted_reject_count = stats->unaccounted_reject_count;
+ 			stats->unaccounted_shares =
+ 			stats->unaccounted_diff_shares =
+ 			stats->unaccounted_rejects = 0;
++			stats->unaccounted_reject_count = 0;
+ 			mutex_unlock(&sdata->uastats_lock);
+ 
+ 			mutex_lock(&sdata->stats_lock);
+ 			stats->accounted_shares += unaccounted_shares;
+ 			stats->accounted_diff_shares += unaccounted_diff_shares;
+ 			stats->accounted_rejects += unaccounted_rejects;
++			stats->accounted_reject_count += unaccounted_reject_count;
+ 
+ 			decay_time(&stats->sps1, unaccounted_shares, per_tdiff, MIN1);
+ 			decay_time(&stats->sps5, unaccounted_shares, per_tdiff, MIN5);

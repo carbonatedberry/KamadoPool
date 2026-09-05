@@ -1,0 +1,83 @@
+# ----------------------------------------------------------------------------
+# Kamado Pool, development compose
+#
+# Spins up ckpool-solo and kamado-api pointing at a bitcoind. Expects
+# bitcoind to be reachable at the host/port set in the env blocks below.
+# For local testing, run bitcoind on regtest/testnet4 and set these via .env.
+#
+# ckpool and kamado-api share the `ckpool-sock` named volume so the API
+# can dial /run/ckpool/stratifier directly.
+# ----------------------------------------------------------------------------
+services:
+  ckpool:
+    build:
+      context: ./ckpool
+      dockerfile: Dockerfile
+    container_name: kamado-ckpool
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    volumes:
+      - ckpool-sock:/run/ckpool
+      - ./data/logs:/var/log/ckpool
+    environment:
+      # --- Bitcoin Core connection ---
+      BITCOIN_RPC_HOST: "host.docker.internal"
+      BITCOIN_RPC_PORT: "48332"       # testnet4 default
+      BITCOIN_RPC_USER: "${BITCOIN_RPC_USER:-kamado}"
+      BITCOIN_RPC_PASSWORD: "${BITCOIN_RPC_PASSWORD:-kamado}"
+      BITCOIN_NOTIFY: "true"
+      ZMQ_BLOCK: "${ZMQ_BLOCK:-}"     # e.g. tcp://host.docker.internal:28332
+
+      # --- Pool settings ---
+      POOL_BTCADDRESS: "${POOL_BTCADDRESS:?set POOL_BTCADDRESS in .env}"
+      POOL_BTCSIG: "/Kamado Pool dev/"
+      STRATUM_PORT: "3333"
+
+      # --- Difficulty ---
+      MINDIFF: "1"
+      STARTDIFF: "1"
+      MAXDIFF: "0"
+      # Drop clients idle longer than N seconds (0 = never drop)
+      DROPIDLE: "0"
+
+      # --- Logging ---
+      SHARE_LOG: "1"
+      LOGDIR: "/var/log/ckpool"
+      SOCKET_DIR: "/run/ckpool"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  api:
+    build:
+      # Repo root so the Dockerfile can pull in both api/ and ui/.
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: kamado-api
+    restart: unless-stopped
+    depends_on:
+      - ckpool
+    ports:
+      - "8080:8080"
+    volumes:
+      - ckpool-sock:/run/ckpool
+      - ./data/logs:/var/log/ckpool:ro
+      - kamado-db:/var/lib/kamado
+    environment:
+      LISTEN_ADDR: ":8080"
+      CKPOOL_SOCKDIR: "/run/ckpool"
+      CKPOOL_LOGFILE: "/var/log/ckpool/ckpool.log"
+      POLL_INTERVAL: "5s"
+
+      # --- Bitcoin Core RPC (same creds as ckpool) ---
+      BITCOIN_RPC_URL: "http://host.docker.internal:48332"
+      BITCOIN_RPC_USER: "${BITCOIN_RPC_USER:-kamado}"
+      BITCOIN_RPC_PASSWORD: "${BITCOIN_RPC_PASSWORD:-kamado}"
+      BITCOIN_RPC_TIMEOUT: "10s"
+      BITCOIN_ZMQ_BLOCK: "${ZMQ_BLOCK:-}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ckpool-sock:
+  kamado-db:

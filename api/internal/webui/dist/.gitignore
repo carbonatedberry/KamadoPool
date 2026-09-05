@@ -1,0 +1,7 @@
+# Build artifacts from `make ui` / the Dockerfile's node stage land
+# here during `go build`. Only the placeholder index.html (tracked)
+# and this .gitignore are kept in source control; everything else is
+# regenerated per build.
+*
+!.gitignore
+!index.html

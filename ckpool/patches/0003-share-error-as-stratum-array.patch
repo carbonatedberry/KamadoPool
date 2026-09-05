@@ -1,0 +1,38 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index 8281fa0..52da790 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -6004,7 +6004,32 @@ static void check_best_diff(sdata_t *sdata, user_instance_t *user,worker_instanc
+ 	stratum_send_message(sdata, client, buf);
+ }
+ 
+-#define JSON_ERR(err) json_string(SHARE_ERR(err))
++/* Map ckpool's share_err enum to standard Stratum mining v1 error codes
++ * (per the Slush stratum spec). Miners like AxeOS / Bitaxe expect the
++ * "error" field on a share response to be a [code, message, traceback]
++ * array; without this they show "unknown error" because cJSON_IsArray
++ * returns false on a bare string. */
++static inline int share_err_code(enum share_err err)
++{
++	switch (err) {
++	case SE_NO_JOBID:
++	case SE_INVALID_JOBID:
++	case SE_STALE:
++	case SE_NTIME_INVALID:
++		return 21; /* job not found / stale */
++	case SE_DUPE:
++		return 22; /* duplicate share */
++	case SE_HIGH_DIFF:
++		return 23; /* low difficulty share */
++	case SE_NO_USERNAME:
++	case SE_WORKER_MISMATCH:
++		return 24; /* unauthorized worker */
++	default:
++		return 20; /* other / unknown */
++	}
++}
++
++#define JSON_ERR(err) json_pack("[isn]", share_err_code(err), SHARE_ERR(err))
+ 
+ /* Needs to be entered with client holding a ref count. */
+ static json_t *parse_submit(stratum_instance_t *client, json_t *json_msg,

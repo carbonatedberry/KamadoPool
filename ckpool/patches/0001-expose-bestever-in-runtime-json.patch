@@ -1,0 +1,32 @@
+diff --git a/src/stratifier.c b/src/stratifier.c
+index 8281fa02..c94ca645 100644
+--- a/src/stratifier.c
++++ b/src/stratifier.c
+@@ -4007,9 +4007,10 @@ static json_t *userinfo(const user_instance_t *user)
+ {
+ 	json_t *val;
+ 
+-	JSON_CPACK(val, "{ss,si,si,sf,sf,sf,sf,sf,sf,si}",
++	JSON_CPACK(val, "{ss,si,si,sf,sf,sf,sf,sf,sf,sf,si}",
+ 		   "user", user->username, "id", user->id, "workers", user->workers,
+-	    "bestdiff", user->best_diff, "dsps1", user->dsps1, "dsps5", user->dsps5,
++	    "bestdiff", user->best_diff, "bestever", (double)user->best_ever,
++	    "dsps1", user->dsps1, "dsps5", user->dsps5,
+ 	    "dsps60", user->dsps60, "dsps1440", user->dsps1440, "dsps10080", user->dsps10080,
+ 	    "lastshare", user->last_share.tv_sec);
+ 	return val;
+@@ -4128,11 +4129,12 @@ static json_t *workerinfo(const user_instance_t *user, const worker_instance_t *
+ {
+ 	json_t *val;
+ 
+-	JSON_CPACK(val, "{ss,ss,si,sf,sf,sf,sf,si,sf,si,sb}",
++	JSON_CPACK(val, "{ss,ss,si,sf,sf,sf,sf,si,sf,sf,si,sb}",
+ 		   "user", user->username, "worker", worker->workername, "id", user->id,
+ 	    "dsps1", worker->dsps1, "dsps5", worker->dsps5, "dsps60", worker->dsps60,
+ 	    "dsps1440", worker->dsps1440, "lastshare", worker->last_share.tv_sec,
+-	    "bestdiff", worker->best_diff, "mindiff", worker->mindiff, "idle", worker->idle);
++	    "bestdiff", worker->best_diff, "bestever", (double)worker->best_ever,
++	    "mindiff", worker->mindiff, "idle", worker->idle);
+ 	return val;
+ }
+ 
