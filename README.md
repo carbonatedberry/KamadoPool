@@ -239,7 +239,7 @@ test/
 
 ## StartOS
 
-The StartOS wrapper packages Kamado Pool as an `.s9pk` for StartOS 0.3.5.1 with health checks, configuration, actions, backup/restore. Porting to StartOS 0.4.0 is in progress.
+The StartOS wrapper can be found at: https://github.com/carbonatedberry/KamadoPool-StartOS
 
 ## Upstream
 
