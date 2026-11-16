@@ -101,6 +101,28 @@ func TestCall_SuccessOnFirstTry(t *testing.T) {
 	}
 }
 
+// Parameterless calls must still carry `"params":[]`. Start9's btc-rpc-proxy
+// (in front of every node since bitcoin-core-startos 31.1:17) rejects a
+// missing or null params member with -32700.
+func TestCall_NilParamsSentAsEmptyArray(t *testing.T) {
+	var got map[string]json.RawMessage
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Errorf("decode request: %v", err)
+		}
+		json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"chain": "main"}, "error": nil})
+	}))
+	t.Cleanup(srv.Close)
+
+	rpc := NewRPC(srv.URL, "u", "p", 5*time.Second)
+	if _, err := rpc.GetBlockchainInfo(context.Background()); err != nil {
+		t.Fatalf("GetBlockchainInfo: %v", err)
+	}
+	if p := string(got["params"]); p != "[]" {
+		t.Errorf("params = %q, want []", p)
+	}
+}
+
 func TestCall_RetryOnTransient503(t *testing.T) {
 	srv, calls := jsonRPCServer(t, 2, "blockhash_xyz")
 	rpc := NewRPC(srv.URL, "u", "p", 5*time.Second)

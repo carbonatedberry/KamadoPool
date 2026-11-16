@@ -81,6 +81,13 @@ func (c *RPC) Call(ctx context.Context, method string, params []any, out any) er
 }
 
 func (c *RPC) callOnce(ctx context.Context, method string, params []any, out any) error {
+	// A nil slice marshals to `"params":null`. Bitcoin Core tolerates that,
+	// but stricter JSON-RPC front-ends reject it: Start9's btc-rpc-proxy,
+	// which fronts every node from bitcoin-core-startos 31.1:17 on, answers
+	// -32700 "missing field `params`". Always send an array.
+	if params == nil {
+		params = []any{}
+	}
 	body, err := json.Marshal(rpcRequest{
 		JSONRPC: "1.0",
 		ID:      "kamado",

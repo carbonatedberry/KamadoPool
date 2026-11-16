@@ -18,6 +18,17 @@ alphabetical order:
 | `0002-enable-socket-api-responses.patch`                 | Always reply on the listener socket so kamado-api gets responses even with `btcsolo: true`    |
 | `0003-share-error-as-stratum-array.patch`                | Maps `share_err` to Stratum spec error codes; emits `[code, msg, null]` per Slush             |
 | `0007-rename-coinbase-tag-ckpool-to-kamado.patch`        | Replaces hardcoded "ckpool" branding in coinbase scriptSig with "kamado" (same 6 bytes)       |
+| `0010-send-empty-params-on-parameterless-rpc-calls.patch` | Adds `"params": []` to `getblockcount` / `getbestblockhash`, which upstream sends without it  |
+
+### Why 0010 matters
+
+Bitcoin Core accepts a JSON-RPC request with no `params` member, so upstream
+never sends one for its two parameterless calls. Start9's `btc-rpc-proxy`
+does not: it answers `-32700 missing field \`params\``. From
+bitcoin-core-startos 31.1:17 on, that proxy fronts the RPC port of every node
+(earlier only pruned ones), so without this patch CKPool's block polling and
+tip checks fail there while everything works against 30.x. The change is
+valid against Core itself and is a candidate for upstreaming.
 
 ### Why 0001 matters
 

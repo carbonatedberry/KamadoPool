@@ -1,0 +1,21 @@
+diff --git a/src/bitcoin.c b/src/bitcoin.c
+--- a/src/bitcoin.c
++++ b/src/bitcoin.c
+@@ -225,7 +225,7 @@
+ 	memset(gbt, 0, sizeof(gbtbase_t));
+ }
+ 
+-static const char *blockcount_req = "{\"method\": \"getblockcount\"}\n";
++static const char *blockcount_req = "{\"method\": \"getblockcount\", \"params\": []}\n";
+ 
+ /* Request getblockcount from bitcoind, returning the count or -1 if the call
+  * fails. */
+@@ -282,7 +282,7 @@
+ 	return ret;
+ }
+ 
+-static const char *bestblockhash_req = "{\"method\": \"getbestblockhash\"}\n";
++static const char *bestblockhash_req = "{\"method\": \"getbestblockhash\", \"params\": []}\n";
+ 
+ /* Request getbestblockhash from bitcoind. bitcoind 0.9+ only */
+ bool get_bestblockhash(connsock_t *cs, char *hash)
